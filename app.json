@@ -5,9 +5,6 @@
   "logo": "https://ibb.co/FgPVtzw",
   "keywords": ["telegram", "bot", "python"],
   "addons": ["heroku-postgresql"],
-  "scripts": {
-    "postdeploy": "python setup.py"
-  },
   "env": {
     "TELEGRAM_BOT_TOKEN": {
       "description": "Your Telegram bot token."
