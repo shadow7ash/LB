@@ -54,11 +54,33 @@ def leech(update: Update, context: CallbackContext) -> None:
 
 # Broadcast command handler
 def broadcast(update: Update, context: CallbackContext) -> None:
-    # Your broadcast command logic here
+    # Check if the user is the owner
+    if update.message.from_user.id == OWNER_ID:
+        # Get the broadcast message from the command
+        message = update.message.text.replace("/broadcast ", "")
+        
+        # Get all users from the database
+        users = db.users.find()
+        
+        # Send the broadcast message to each user
+        for user in users:
+            context.bot.send_message(chat_id=user["user_id"], text=message)
+    else:
+        update.message.reply_text("You are not authorized to use this command.")
 
 # Users command handler
 def users(update: Update, context: CallbackContext) -> None:
-    # Your users command logic here
+    # Check if the user is the owner
+    if update.message.from_user.id == OWNER_ID:
+        # Get the total number of users
+        total_users_count = db.users.count_documents({})
+        
+        # Get the total number of blocked users
+        blocked_users_count = db.users.count_documents({"blocked": True})
+        
+        update.message.reply_text(f"Total users: {total_users_count}\nBlocked users: {blocked_users_count}")
+    else:
+        update.message.reply_text("You are not authorized to use this command.")
 
 # Add handlers for commands and messages
 dispatcher.add_handler(CommandHandler("start", start))
