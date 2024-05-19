@@ -1,4 +1,5 @@
 import os
+import requests
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 from pymongo import MongoClient
@@ -34,7 +35,22 @@ def start(update: Update, context: CallbackContext) -> None:
 
 # Leech command handler
 def leech(update: Update, context: CallbackContext) -> None:
-    # Your leech command logic here
+    # Get the message text
+    message_text = update.message.text
+    
+    # Check if the message is a direct download link (http or https)
+    if message_text.startswith("http://") or message_text.startswith("https://"):
+        # Fetch the file from the link
+        file_url = message_text
+        response = requests.get(file_url)
+        
+        if response.status_code == 200:
+            # Send the file to the user
+            update.message.reply_document(document=response.content, filename="downloaded_file")
+        else:
+            update.message.reply_text("Failed to fetch file.")
+    else:
+        update.message.reply_text("Please provide a direct download link.")
 
 # Broadcast command handler
 def broadcast(update: Update, context: CallbackContext) -> None:
