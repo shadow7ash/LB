@@ -18,6 +18,9 @@
     "FORCE_SUBSCRIBE_MESSAGE": {
       "description": "Message to prompt users to subscribe to your channel."
     },
+    "FORCE_SUBSCRIBE_CHANNEL_ID": {
+      "description": "Channel ID for force subscribe message."
+    },
     "MONGODB_URL": {
       "description": "Your MongoDB connection URL."
     }

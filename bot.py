@@ -7,6 +7,7 @@ from pymongo import MongoClient
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 OWNER_ID = int(os.getenv("OWNER_ID"))  # Owner's user ID
 FORCE_SUBSCRIBE_MESSAGE = os.getenv("FORCE_SUBSCRIBE_MESSAGE", "Please subscribe to our channel to use this bot. Click here to subscribe: [Channel Name](https://t.me/your_channel)")
+FORCE_SUBSCRIBE_CHANNEL_ID = int(os.getenv("FORCE_SUBSCRIBE_CHANNEL_ID"))  # Channel ID for force subscribe message
 
 # Connect to MongoDB
 MONGODB_URL = os.getenv("MONGODB_URL")
