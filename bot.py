@@ -5,10 +5,6 @@ import os
 import requests
 from urllib.parse import urlparse
 import asyncio
-import logging
-
-# Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 # MongoDB setup
 MONGODB_URL = os.getenv("MONGODB_URL")
@@ -114,7 +110,7 @@ async def broadcast(update: Update, context: CallbackContext) -> None:
             print(f"Failed to send message to {user['user_id']}: {e}")
 
 async def users(update: Update, context: CallbackContext) -> None:
-    if update.effective_user.id != int(os.getenv("OWNER_ID")):
+        if update.effective_user.id != int(os.getenv("OWNER_ID")):
         await update.message.reply_text("You are not authorized to use this command.")
         return
     
@@ -123,6 +119,10 @@ async def users(update: Update, context: CallbackContext) -> None:
     active_users = total_users - blocked_users
     
     await update.message.reply_text(f"Total users: {total_users}\nActive users: {active_users}\nBlocked users: {blocked_users}")
+
+def error(update: Update, context: CallbackContext) -> None:
+    """Log Errors caused by Updates."""
+    logger.warning('Update "%s" caused error "%s"', update, context.error)
 
 async def start_application() -> None:
     updater = Updater(os.getenv("TELEGRAM_BOT_TOKEN"))
@@ -143,4 +143,3 @@ async def start_application() -> None:
 
 if __name__ == "__main__":
     asyncio.run(start_application())
-
