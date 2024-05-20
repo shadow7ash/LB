@@ -110,7 +110,7 @@ async def broadcast(update: Update, context: CallbackContext) -> None:
             print(f"Failed to send message to {user['user_id']}: {e}")
 
 async def users(update: Update, context: CallbackContext) -> None:
-        if update.effective_user.id != int(os.getenv("OWNER_ID")):
+    if update.effective_user.id != int(os.getenv("OWNER_ID")):
         await update.message.reply_text("You are not authorized to use this command.")
         return
     
