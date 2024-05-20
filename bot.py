@@ -2,7 +2,7 @@ import os
 import warnings
 import requests
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 from pymongo import MongoClient
 
 # Suppress specific warning
@@ -77,7 +77,7 @@ def users(update: Update, context: CallbackContext) -> None:
 # Add handlers for commands and messages
 dispatcher.add_handler(CommandHandler("start", start))
 dispatcher.add_handler(CommandHandler("leech", leech))
-dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, leech))
+dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, leech))
 dispatcher.add_handler(CommandHandler("broadcast", broadcast))
 dispatcher.add_handler(CommandHandler("users", users))
 
