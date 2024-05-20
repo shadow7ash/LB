@@ -137,10 +137,16 @@ async def start_application() -> None:
     # Error handler
     dispatcher.add_error_handler(error)
 
-    # Run the bot
-    await updater.start_polling()
-    await updater.idle()
+    # Start the webhook
+    await updater.start_webhook(
+        listen="0.0.0.0",
+        port=int(os.getenv("PORT")),
+        url_path=os.getenv("TELEGRAM_BOT_TOKEN")
+    )
+    updater.bot.set_webhook(os.getenv("WEBHOOK_URL") + os.getenv("TELEGRAM_BOT_TOKEN"))
 
+    # Run the bot until you press Ctrl-C or the process receives SIGINT, SIGTERM or SIGABRT
+    updater.idle()
 
 if __name__ == "__main__":
     asyncio.run(start_application())
