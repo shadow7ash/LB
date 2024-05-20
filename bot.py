@@ -1,125 +1,68 @@
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, Filters
+import pymongo
 import os
-import logging
-import requests
-from telegram import Update, Bot, ForceReply
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext, Application, ContextTypes
-from pymongo import MongoClient
-from bson.objectid import ObjectId
 
-# Enable logging
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
-
-# Environment variables
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-OWNER_ID = int(os.getenv("OWNER_ID"))
-FORCE_SUBSCRIBE_CHANNEL_ID = int(os.getenv("FORCE_SUBSCRIBE_CHANNEL_ID"))
-FORCE_SUBSCRIBE_MESSAGE = os.getenv("FORCE_SUBSCRIBE_MESSAGE")
+# MongoDB setup
 MONGODB_URL = os.getenv("MONGODB_URL")
-DATABASE_NAME = os.getenv("DATABASE_NAME")
+client = pymongo.MongoClient(MONGODB_URL)
+db = client["your_database_name"]  # Replace "your_database_name" with your actual database name
 
-# Ensure DATABASE_NAME is provided
-if not DATABASE_NAME:
-    raise ValueError("No DATABASE_NAME provided. Set the DATABASE_NAME environment variable.")
+# Force subscribe message
+FORCE_SUB_MESSAGE = "Please join our channel to access the bot's features."
+CHANNEL_INVITE_LINK = "https://t.me/your_channel_invite_link"  # Replace with your channel invite link
 
-# MongoDB client
-client = MongoClient(MONGODB_URL)
-db = client[DATABASE_NAME]
-users_collection = db['users']
-
-# Define command handlers
-async def start(update: Update, context: CallbackContext) -> None:
-    user = update.effective_user
-    user_id = user.id
-    chat_id = update.message.chat_id
-
-    # Check if user is subscribed
-    try:
-        chat_member = await context.bot.get_chat_member(FORCE_SUBSCRIBE_CHANNEL_ID, user_id)
-        if chat_member.status not in ['member', 'administrator', 'creator']:
-            await update.message.reply_text(FORCE_SUBSCRIBE_MESSAGE)
-            return
-    except Exception as e:
-        await update.message.reply_text(FORCE_SUBSCRIBE_MESSAGE)
-        return
-
-    # Add user to database
-    users_collection.update_one({'_id': user_id}, {'$set': {'chat_id': chat_id}}, upsert=True)
-    await update.message.reply_text('Welcome! Send me a direct download link to leech.')
-
-async def leech(update: Update, context: CallbackContext) -> None:
-    user = update.effective_user
-    user_id = user.id
-
-    # Check if user is subscribed
-    try:
-        chat_member = await context.bot.get_chat_member(FORCE_SUBSCRIBE_CHANNEL_ID, user_id)
-        if chat_member.status not in ['member', 'administrator', 'creator']:
-            await update.message.reply_text(FORCE_SUBSCRIBE_MESSAGE)
-            return
-    except Exception as e:
-        await update.message.reply_text(FORCE_SUBSCRIBE_MESSAGE)
-        return
-
-    message = update.message.text
-    if message.startswith('http://') or message.startswith('https://'):
-        await update.message.reply_text('Please wait, your file is downloading...')
-        file_url = message
-        file_name = file_url.split('/')[-1]
-
-        try:
-            response = requests.get(file_url)
-            if response.status_code == 200:
-                with open(file_name, 'wb') as file:
-                    file.write(response.content)
-                await context.bot.send_document(chat_id=user_id, document=open(file_name, 'rb'))
-            else:
-                await update.message.reply_text('Failed to download the file.')
-        except Exception as e:
-            await update.message.reply_text(f'Error: {str(e)}')
-
-async def broadcast(update: Update, context: CallbackContext) -> None:
+def start(update: Update, context: CallbackContext) -> None:
     user_id = update.effective_user.id
-    if user_id != OWNER_ID:
-        await update.message.reply_text("You're not authorized to use this command.")
+    
+    # Check if user is in a group chat
+    if update.effective_chat.type == "private":
+        update.message.reply_text("Please use the bot only through the group.")
         return
+    
+    # Check if user is a member of the force subscription channel
+    if user_in_channel(user_id):
+        update.message.reply_text("Welcome to the bot!")
+    else:
+        # User is not in the channel, send force subscribe message with button
+        keyboard = [[InlineKeyboardButton("Join Channel", url=CHANNEL_INVITE_LINK)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        update.message.reply_text(FORCE_SUB_MESSAGE, reply_markup=reply_markup)
 
-    message = ' '.join(context.args)
-    if not message:
-        await update.message.reply_text('Please provide a message to broadcast.')
-        return
-
-    for user in users_collection.find():
-        try:
-            await context.bot.send_message(chat_id=user['chat_id'], text=message)
-        except Exception as e:
-            logger.warning(f"Could not send message to {user['chat_id']}: {str(e)}")
-
-async def users(update: Update, context: CallbackContext) -> None:
+def leech(update: Update, context: CallbackContext) -> None:
     user_id = update.effective_user.id
-    if user_id != OWNER_ID:
-        await update.message.reply_text("You're not authorized to use this command.")
+    
+    # Check if user is in a group chat
+    if update.effective_chat.type == "private":
+        update.message.reply_text("Please use the bot only through the group.")
         return
+    
+    # Your leech logic here
+    # After downloading the file, send it to the user's personal chat
 
-    total_users = users_collection.count_documents({})
-    await update.message.reply_text(f'Total users: {total_users}')
+def user_in_channel(user_id):
+    # Check if the user is a member of the force subscription channel
+    try:
+        # Get channel information
+        channel_id = "your_channel_id"  # Replace with your channel ID
+        chat_member = context.bot.get_chat_member(channel_id, user_id)
+        
+        # If user is a member, return True
+        return chat_member.status == "member"
+    except Exception as e:
+        print("Error checking channel membership:", e)
+        return False
 
 def main() -> None:
-    # Create the Application and pass it your bot's token.
-    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    updater = Updater("your_bot_token")  # Replace "your_bot_token" with your actual bot token
+    dispatcher = updater.dispatcher
 
-    # Add command handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("leech", leech))
-    application.add_handler(CommandHandler("broadcast", broadcast, filters.User(OWNER_ID)))
-    application.add_handler(CommandHandler("users", users, filters.User(OWNER_ID)))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, leech))
+    # Command handlers
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("leech", leech))
 
-    # Run the bot until you press Ctrl-C or the process receives SIGINT, SIGTERM or SIGABRT
-    application.run_polling()
+    updater.start_polling()
+    updater.idle()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
