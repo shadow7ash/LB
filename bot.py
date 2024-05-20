@@ -1,5 +1,5 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, CallbackContext, Application
+from telegram.ext import Updater, CommandHandler, CallbackContext
 import pymongo
 import os
 import requests
@@ -105,7 +105,7 @@ async def broadcast(update: Update, context: CallbackContext) -> None:
     users = db.users.find({"blocked": False})
     for user in users:
         try:
-            await context.bot.send_message(chat_id=user["user_id"], text=message)       
+            await context.bot.send_message(chat_id=user["user_id"], text=message)
         except Exception as e:
             print(f"Failed to send message to {user['user_id']}: {e}")
 
@@ -131,8 +131,8 @@ async def start_application() -> None:
     dispatcher.add_handler(CommandHandler("users", users))
 
     # Run the bot
-    await updater.start_polling()
-    await updater.idle()
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == "__main__":
     asyncio.run(start_application())
