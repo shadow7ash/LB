@@ -1,5 +1,5 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Application, CommandHandler, CallbackContext
+from telegram.ext import Updater, CommandHandler, CallbackContext
 import pymongo
 import os
 import requests
