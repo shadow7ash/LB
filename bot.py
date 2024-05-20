@@ -1,10 +1,10 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler  # Modified import statement
-from telegram.ext import filters  # Importing filters module separately
+from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, filters  # Modified import statement
 import pymongo
 import os
 import requests
 from urllib.parse import urlparse
+from queue import Queue
 
 # MongoDB setup
 MONGODB_URL = os.getenv("MONGODB_URL")
@@ -20,11 +20,13 @@ def start(update: Update, context: CallbackContext) -> None:
     
     # Check if user is in a group chat
     if update.effective_chat.type == "private":
-        update.message.reply_text("Please use the bot only through the group.")
+        keyboard = [[InlineKeyboardButton("Join Channel", url=CHANNEL_INVITE_LINK)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        update.message.reply_text("Please use the bot only through the group. Join the force sub channel first.", reply_markup=reply_markup)
         return
     
     # Check if user is a member of the force subscription channel
-    if user_in_channel(user_id):
+    if user_in_channel(user_id, context):
         update.message.reply_text("Welcome to the bot!")
     else:
         # User is not in the channel, send force subscribe message with button
@@ -37,7 +39,9 @@ def leech(update: Update, context: CallbackContext) -> None:
     
     # Check if user is in a group chat
     if update.effective_chat.type == "private":
-        update.message.reply_text("Please use the bot only through the group.")
+        keyboard = [[InlineKeyboardButton("Join Channel", url=CHANNEL_INVITE_LINK)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        update.message.reply_text("Please use the bot only through the group. Join the force sub channel first.", reply_markup=reply_markup)
         return
     
     # Check if the message contains a valid link
@@ -51,13 +55,13 @@ def leech(update: Update, context: CallbackContext) -> None:
     file_path = download_file(download_link)
     if file_path:
         # Send the downloaded file to the user's personal chat
-        update.message.reply_document(open(file_path, 'rb'))
+        context.bot.send_document(chat_id=user_id, document=open(file_path, 'rb'))
         os.remove(file_path)  # Remove the downloaded file after sending
     else:
         update.message.reply_text("Failed to download the file.")
         
 
-def user_in_channel(user_id):
+def user_in_channel(user_id, context):
     # Check if the user is a member of the force subscription channel
     try:
         # Get channel information
@@ -93,7 +97,9 @@ def download_file(download_link):
         return None
 
 def main() -> None:
-    updater = Updater("your_bot_token")  # Replace "your_bot_token" with your actual bot token
+    bot_token = "your_bot_token"  # Replace "your_bot_token" with your actual bot token
+    update_queue = Queue()
+    updater = Updater(bot_token, update_queue)  # Properly initializing the Updater
     dispatcher = updater.dispatcher
 
     # Command handlers
