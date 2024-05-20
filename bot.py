@@ -1,9 +1,10 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, CallbackContext
 import pymongo
 import os
 import requests
 from urllib.parse import urlparse
+import asyncio
 
 # MongoDB setup
 MONGODB_URL = os.getenv("MONGODB_URL")
@@ -129,10 +130,10 @@ async def start_application() -> None:
     application.add_handler(CommandHandler("users", users))
 
     # Run the bot
+    await application.initialize()  # Ensure proper initialization
     await application.start()
     await application.updater.start_polling()
     await application.idle()
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(start_application())

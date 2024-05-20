@@ -1,24 +1,30 @@
 {
   "name": "SA LEECH BOT",
-  "description": "Introducing SA's Leech Bot! 🚀 Need files quickly and effortlessly? Look no further! Our bot fetches files from direct download links and delivers them straight to your Telegram inbox. Developed with simplicity in mind by SA",
+  "description": "Introducing SA's Leech Bot! 🚀 Need files quickly and effortlessly? Look no further! Our bot fetches files from direct download links and delivers them straight to your Telegram inbox. Developed with simplicity in mind by SA.",
   "repository": "https://github.com/shadow7ash/LB",
-  "logo": "https://ibb.co/FgPVtzw",
+  "logo": "https://i.ibb.co/FgPVtzw/leech-bot-logo.png",
   "keywords": ["telegram", "bot", "python"],
+  "addons": ["heroku-postgresql"],
   "env": {
     "TELEGRAM_BOT_TOKEN": {
-      "description": "Your Telegram bot token."
+      "description": "Your Telegram bot token.",
+      "value": ""
     },
     "OWNER_ID": {
-      "description": "Your Telegram user ID."
+      "description": "Your Telegram user ID.",
+      "value": ""
     },
     "FORCE_SUBSCRIBE_MESSAGE": {
-      "description": "Message to prompt users to subscribe to your channel."
+      "description": "Message to prompt users to subscribe to your channel.",
+      "value": "Please join our channel to access the bot's features."
     },
     "FORCE_SUBSCRIBE_CHANNEL_ID": {
-      "description": "Channel ID for force subscribe message."
+      "description": "Channel ID for force subscribe message.",
+      "value": ""
     },
     "MONGODB_URL": {
-      "description": "Your MongoDB connection URL."
+      "description": "Your MongoDB connection URL.",
+      "value": ""
     }
   }
 }
