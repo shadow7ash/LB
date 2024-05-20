@@ -138,8 +138,9 @@ async def start_application() -> None:
     dispatcher.add_error_handler(error)
 
     # Run the bot
-    updater.start_polling()
-    updater.idle()
+    await updater.start_polling()
+    await updater.idle()
+
 
 if __name__ == "__main__":
     asyncio.run(start_application())
