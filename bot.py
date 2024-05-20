@@ -2,6 +2,8 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, Filters
 import pymongo
 import os
+import requests
+from urllib.parse import urlparse
 
 # MongoDB setup
 MONGODB_URL = os.getenv("MONGODB_URL")
@@ -37,8 +39,22 @@ def leech(update: Update, context: CallbackContext) -> None:
         update.message.reply_text("Please use the bot only through the group.")
         return
     
-    # Your leech logic here
-    # After downloading the file, send it to the user's personal chat
+    # Check if the message contains a valid link
+    if len(context.args) == 0:
+        update.message.reply_text("Please provide a valid downloadable link.")
+        return
+    
+    download_link = context.args[0]
+    
+    # Download the file from the provided link
+    file_path = download_file(download_link)
+    if file_path:
+        # Send the downloaded file to the user's personal chat
+        update.message.reply_document(open(file_path, 'rb'))
+        os.remove(file_path)  # Remove the downloaded file after sending
+    else:
+        update.message.reply_text("Failed to download the file.")
+        
 
 def user_in_channel(user_id):
     # Check if the user is a member of the force subscription channel
@@ -52,6 +68,28 @@ def user_in_channel(user_id):
     except Exception as e:
         print("Error checking channel membership:", e)
         return False
+
+def download_file(download_link):
+    try:
+        response = requests.get(download_link)
+        if response.status_code == 200:
+            # Get the filename from the Content-Disposition header
+            content_disposition = response.headers.get("Content-Disposition")
+            if content_disposition:
+                filename = content_disposition.split("filename=")[1].strip('"')
+            else:
+                # If Content-Disposition header is not present, extract filename from the URL
+                filename = os.path.basename(urlparse(download_link).path)
+            
+            file_path = os.path.join("downloads", filename)  # Save the file in a "downloads" directory
+            with open(file_path, 'wb') as file:
+                file.write(response.content)
+            return file_path
+        else:
+            return None
+    except Exception as e:
+        print("Error downloading file:", e)
+        return None
 
 def main() -> None:
     updater = Updater("your_bot_token")  # Replace "your_bot_token" with your actual bot token

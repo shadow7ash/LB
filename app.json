@@ -5,24 +5,26 @@
   "logo": "https://ibb.co/FgPVtzw",
   "keywords": ["telegram", "bot", "python"],
   "addons": ["heroku-postgresql"],
-  "scripts": {
-    "postdeploy": "python setup.py"
-  },
   "env": {
     "TELEGRAM_BOT_TOKEN": {
-      "description": "Your Telegram bot token."
+      "description": "Your Telegram bot token.",
+      "required": true
     },
     "OWNER_ID": {
-      "description": "Your Telegram user ID."
+      "description": "Your Telegram user ID.",
+      "required": true
     },
     "FORCE_SUBSCRIBE_MESSAGE": {
-      "description": "Message to prompt users to subscribe to your channel."
+      "description": "Message to prompt users to subscribe to your channel.",
+      "required": true
     },
     "FORCE_SUBSCRIBE_CHANNEL_ID": {
-      "description": "Channel ID for force subscribe message."
+      "description": "Channel ID for force subscribe message.",
+      "required": true
     },
     "MONGODB_URL": {
-      "description": "Your MongoDB connection URL."
+      "description": "Your MongoDB connection URL.",
+      "required": true
     }
   }
 }
