@@ -1,86 +1,134 @@
 import os
-import warnings
-import requests
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+import logging
+from telegram import Update, Bot
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
 from pymongo import MongoClient
+from telegram.error import TelegramError
+import requests
 
-# Suppress specific warning
-warnings.filterwarnings('ignore', message='python-telegram-bot is using upstream urllib3')
+# Enable logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
-# Get the bot token and owner ID from environment variables
+# Environment variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-OWNER_ID = int(os.getenv("OWNER_ID"))  # Owner's user ID
-FORCE_SUBSCRIBE_MESSAGE = os.getenv("FORCE_SUBSCRIBE_MESSAGE", "Please subscribe to our channel to use this bot. Click here to subscribe: [Channel Name](https://t.me/your_channel)")
-FORCE_SUBSCRIBE_CHANNEL_ID = int(os.getenv("FORCE_SUBSCRIBE_CHANNEL_ID"))  # Channel ID for force subscribe message
-
-# Connect to MongoDB
+OWNER_ID = int(os.getenv("OWNER_ID"))
+FORCE_SUBSCRIBE_MESSAGE = os.getenv("FORCE_SUBSCRIBE_MESSAGE")
+FORCE_SUBSCRIBE_CHANNEL_ID = os.getenv("FORCE_SUBSCRIBE_CHANNEL_ID")
 MONGODB_URL = os.getenv("MONGODB_URL")
+
+# Initialize bot and database client
+bot = Bot(token=TELEGRAM_BOT_TOKEN)
 client = MongoClient(MONGODB_URL)
-db_name = MONGODB_URL.split('/')[-1]
-db = client[db_name]
+db = client.get_database()
+users_collection = db.get_collection("users")
 
-# Initialize the bot
-updater = Updater(TELEGRAM_BOT_TOKEN, use_context=True)
-dispatcher = updater.dispatcher
+# Check if user is a member of the channel
+def is_user_subscribed(user_id):
+    try:
+        member_status = bot.get_chat_member(FORCE_SUBSCRIBE_CHANNEL_ID, user_id).status
+        return member_status in ["member", "administrator", "creator"]
+    except TelegramError as e:
+        logger.error(f"Error checking subscription status: {e}")
+        return False
 
-# Force subscribe handler
-def force_subscribe(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text(FORCE_SUBSCRIBE_MESSAGE, parse_mode="Markdown")
-
-# Start command handler
 def start(update: Update, context: CallbackContext) -> None:
-    user_id = update.message.from_user.id
-    db.users.update_one({"user_id": user_id}, {"$set": {"blocked": False}}, upsert=True)
-    update.message.reply_text("Welcome to the Leech Bot! Send me a direct download link or reply to a message containing a link with /leech command.")
+    user = update.effective_user
+    if not is_user_subscribed(user.id):
+        update.message.reply_text(FORCE_SUBSCRIBE_MESSAGE)
+        return
 
-# Leech command handler
+    # Save user to database
+    if users_collection.find_one({"user_id": user.id}) is None:
+        users_collection.insert_one({"user_id": user.id, "blocked": False, "deleted": False})
+
+    update.message.reply_text('Hello! Send me a link to leech.')
+
 def leech(update: Update, context: CallbackContext) -> None:
+    user = update.effective_user
+    if not is_user_subscribed(user.id):
+        update.message.reply_text(FORCE_SUBSCRIBE_MESSAGE)
+        return
+
     message = update.message
-    file_url = message.text.split(" ")[1] if len(message.text.split(" ")) > 1 else None
+    link = message.text.strip()
 
-    if not file_url and message.reply_to_message:
-        file_url = message.reply_to_message.text
+    if link.startswith(("http://", "https://")):
+        update.message.reply_text("Please wait, your file is downloading...")
 
-    if file_url and (file_url.startswith("http://") or file_url.startswith("https://")):
-        response = requests.get(file_url)
-        if response.status_code == 200:
-            update.message.reply_document(document=response.content, filename="downloaded_file")
-        else:
-            update.message.reply_text("Failed to fetch file.")
+        try:
+            # Get file name from the URL
+            file_name = link.split("/")[-1]
+            response = requests.get(link, stream=True)
+
+            # Check if the URL is valid and can be accessed
+            if response.status_code == 200:
+                file_size = int(response.headers.get('content-length', 0)) / (1024 * 1024)  # Convert size to MB
+                update.message.reply_text(f"File size: {file_size:.2f} MB")
+
+                # Save the file
+                with open(file_name, 'wb') as file:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            file.write(chunk)
+
+                # Send the file to the user's personal chat
+                bot.send_document(chat_id=user.id, document=open(file_name, 'rb'))
+                update.message.reply_text("The file has been sent to your personal chat.")
+            else:
+                update.message.reply_text("Failed to download the file. Please check the link.")
+        except Exception as e:
+            logger.error(f"Error processing the link: {e}")
+            update.message.reply_text("An error occurred while processing your request.")
     else:
-        update.message.reply_text("Please provide a direct download link.")
+        update.message.reply_text("Please send a valid download link.")
 
-# Broadcast command handler
 def broadcast(update: Update, context: CallbackContext) -> None:
-    if update.message.from_user.id == OWNER_ID:
-        message = update.message.text.replace("/broadcast ", "")
-        users = db.users.find()
+    if update.effective_user.id != OWNER_ID:
+        return
 
-        for user in users:
-            try:
-                context.bot.send_message(chat_id=user["user_id"], text=message)
-            except Exception:
-                db.users.update_one({"user_id": user["user_id"]}, {"$set": {"blocked": True}})
-    else:
-        update.message.reply_text("You are not authorized to use this command.")
+    message = ' '.join(context.args)
+    if not message:
+        update.message.reply_text("Please provide a message to broadcast.")
+        return
 
-# Users command handler
+    for user in users_collection.find({"blocked": False, "deleted": False}):
+        try:
+            bot.send_message(chat_id=user["user_id"], text=message)
+        except TelegramError as e:
+            logger.error(f"Error sending message to {user['user_id']}: {e}")
+
 def users(update: Update, context: CallbackContext) -> None:
-    if update.message.from_user.id == OWNER_ID:
-        total_users_count = db.users.count_documents({})
-        blocked_users_count = db.users.count_documents({"blocked": True})
-        update.message.reply_text(f"Total users: {total_users_count}\nBlocked users: {blocked_users_count}")
-    else:
-        update.message.reply_text("You are not authorized to use this command.")
+    if update.effective_user.id != OWNER_ID:
+        return
 
-# Add handlers for commands and messages
-dispatcher.add_handler(CommandHandler("start", start))
-dispatcher.add_handler(CommandHandler("leech", leech))
-dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, leech))
-dispatcher.add_handler(CommandHandler("broadcast", broadcast))
-dispatcher.add_handler(CommandHandler("users", users))
+    total_users = users_collection.count_documents({})
+    blocked_users = users_collection.count_documents({"blocked": True})
+    deleted_users = users_collection.count_documents({"deleted": True})
 
-# Start the bot
-updater.start_polling()
-updater.idle()
+    update.message.reply_text(
+        f"Total users: {total_users}\nBlocked users: {blocked_users}\nDeleted users: {deleted_users}"
+    )
+
+def error(update: Update, context: CallbackContext) -> None:
+    logger.warning(f'Update "{update}" caused error "{context.error}"')
+
+def main() -> None:
+    updater = Updater(TELEGRAM_BOT_TOKEN, use_context=True)
+    dispatcher = updater.dispatcher
+
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("leech", leech))
+    dispatcher.add_handler(CommandHandler("broadcast", broadcast, pass_args=True))
+    dispatcher.add_handler(CommandHandler("users", users))
+    dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, leech))
+
+    dispatcher.add_error_handler(error)
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
