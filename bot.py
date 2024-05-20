@@ -31,12 +31,14 @@ def start(update: Update, context: CallbackContext) -> None:
 
 # Leech command handler
 def leech(update: Update, context: CallbackContext) -> None:
-    message_text = update.message.text
+    message = update.message
+    file_url = message.text.split(" ")[1] if len(message.text.split(" ")) > 1 else None
 
-    if message_text.startswith("http://") or message_text.startswith("https://"):
-        file_url = message_text
+    if not file_url and message.reply_to_message:
+        file_url = message.reply_to_message.text
+
+    if file_url and (file_url.startswith("http://") or file_url.startswith("https://")):
         response = requests.get(file_url)
-
         if response.status_code == 200:
             update.message.reply_document(document=response.content, filename="downloaded_file")
         else:
