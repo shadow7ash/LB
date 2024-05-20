@@ -13,7 +13,8 @@ FORCE_SUBSCRIBE_CHANNEL_ID = int(os.getenv("FORCE_SUBSCRIBE_CHANNEL_ID"))  # Cha
 # Connect to MongoDB
 MONGODB_URL = os.getenv("MONGODB_URL")
 client = MongoClient(MONGODB_URL)
-db = client.get_database()
+db_name = MONGODB_URL.split('/')[-1]
+db = client[db_name]
 
 # Initialize the bot
 updater = Updater(TELEGRAM_BOT_TOKEN, use_context=True)
