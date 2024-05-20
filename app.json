@@ -20,6 +20,9 @@
     },
     "MONGODB_URL": {
       "description": "Your MongoDB connection URL."
+    },
+    "DATABASE_NAME": {
+      "description": "Your MongoDB database name."
     }
   }
 }
