@@ -1,5 +1,6 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, Filters  # Corrected import statement
+from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler  # Modified import statement
+from telegram.ext import filters  # Importing filters module separately
 import pymongo
 import os
 import requests
