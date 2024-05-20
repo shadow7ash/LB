@@ -5,6 +5,10 @@ import os
 import requests
 from urllib.parse import urlparse
 import asyncio
+import logging
+
+# Enable logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 # MongoDB setup
 MONGODB_URL = os.getenv("MONGODB_URL")
@@ -130,9 +134,13 @@ async def start_application() -> None:
     dispatcher.add_handler(CommandHandler("broadcast", broadcast))
     dispatcher.add_handler(CommandHandler("users", users))
 
+    # Error handler
+    dispatcher.add_error_handler(error)
+
     # Run the bot
     updater.start_polling()
     updater.idle()
 
 if __name__ == "__main__":
     asyncio.run(start_application())
+
