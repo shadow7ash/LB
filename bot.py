@@ -138,8 +138,8 @@ async def start_application() -> None:
     dispatcher.add_error_handler(error)
 
     # Run the bot
-    await updater.start_polling()
-    await updater.idle()
+    updater.start_polling()
+    updater.idle()
 
 
 if __name__ == "__main__":
