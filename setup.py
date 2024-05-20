@@ -6,7 +6,8 @@ setup(
     packages=find_packages(),
     install_requires=[
         'python-telegram-bot==13.12',
-        'pymongo==3.12.1',
-        'requests==2.25.1'
+        'pymongo[srv]==3.12.1',
+        'requests==2.25.1',
+        'dnspython==2.2.1',
     ],
 )

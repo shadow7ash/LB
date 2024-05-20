@@ -1,8 +1,12 @@
 import os
+import warnings
 import requests
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
 from pymongo import MongoClient
+
+# Suppress specific warning
+warnings.filterwarnings('ignore', message='python-telegram-bot is using upstream urllib3')
 
 # Get the bot token and owner ID from environment variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
