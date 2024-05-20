@@ -1,35 +1,24 @@
 {
   "name": "SA LEECH BOT",
-  "description": "Introducing SA's Leech Bot! 🚀 Need files quickly and effortlessly? Look no further! Our bot fetches files from direct download links and delivers them straight to your Telegram inbox. Developed with simplicity in mind by SA.",
+  "description": "Introducing SA's Leech Bot! 🚀 Need files quickly and effortlessly? Look no further! Our bot fetches files from direct download links and delivers them straight to your Telegram inbox. Developed with simplicity in mind by SA",
   "repository": "https://github.com/shadow7ash/LB",
   "logo": "https://ibb.co/FgPVtzw",
   "keywords": ["telegram", "bot", "python"],
-  "addons": ["heroku-postgresql"],
   "env": {
     "TELEGRAM_BOT_TOKEN": {
-      "description": "Your Telegram bot token.",
-      "required": true
+      "description": "Your Telegram bot token."
     },
     "OWNER_ID": {
-      "description": "Your Telegram user ID.",
-      "required": true
+      "description": "Your Telegram user ID."
     },
     "FORCE_SUBSCRIBE_MESSAGE": {
-      "description": "Message to prompt users to subscribe to your channel.",
-      "required": true
+      "description": "Message to prompt users to subscribe to your channel."
     },
     "FORCE_SUBSCRIBE_CHANNEL_ID": {
-      "description": "Channel ID for force subscribe message.",
-      "required": true
+      "description": "Channel ID for force subscribe message."
     },
     "MONGODB_URL": {
-      "description": "Your MongoDB connection URL.",
-      "required": true
+      "description": "Your MongoDB connection URL."
     }
-  },
-  "buildpacks": [
-    {
-      "url": "heroku/python"
-    }
-  ]
+  }
 }

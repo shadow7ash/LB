@@ -1,13 +1,13 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="sa-leech-bot",
-    version="1.0",
+    name="SA LEECH BOT",
+    version="1.0.0",
     packages=find_packages(),
     install_requires=[
         "python-telegram-bot==20.0",
-        "pymongo==3.12.1",
-        "requests==2.31.0"
+        "pymongo==4.3.3",
+        "requests==2.28.2"
     ],
     entry_points={
         "console_scripts": [
