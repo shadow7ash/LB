@@ -7,109 +7,105 @@ from urllib.parse import urlparse
 import asyncio
 import logging
 
-# Environment Variable Configuration (Replace placeholders)
+# MongoDB setup
 MONGODB_URL = os.getenv("MONGODB_URL")
-FORCE_SUBSCRIBE_MESSAGE = os.getenv("FORCE_SUBSCRIBE_MESSAGE", "Please join our channel to access the bot's features.")
-CHANNEL_INVITE_LINK = os.getenv("CHANNEL_INVITE_LINK", "https://t.me/your_channel_invite_link")
-FORCE_SUBSCRIBE_CHANNEL_ID = os.getenv("FORCE_SUBSCRIBE_CHANNEL_ID")
-OWNER_ID = int(os.getenv("OWNER_ID"))  # Ensure OWNER_ID is an integer
-
-# MongoDB Setup
 client = pymongo.MongoClient(MONGODB_URL)
 db = client["your_database_name"]  # Replace "your_database_name" with your actual database name
 
-# Logging Setup
+# Force subscribe message
+FORCE_SUB_MESSAGE = os.getenv("FORCE_SUBSCRIBE_MESSAGE", "Please join our channel to access the bot's features.")
+CHANNEL_INVITE_LINK = "https://t.me/your_channel_invite_link"  # Replace with your channel invite link
+
+# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Bot Commands
-
 async def start(update: Update, context: CallbackContext) -> None:
     user_id = update.effective_user.id
-
-    # Force Subscribe Check
+    
+    # Check if user is in a group chat
     if update.effective_chat.type == "private":
         keyboard = [[InlineKeyboardButton("Join Channel", url=CHANNEL_INVITE_LINK)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(FORCE_SUBSCRIBE_MESSAGE, reply_markup=reply_markup)
+        await update.message.reply_text("Join this force sub channel then send commands to the bot from here.", reply_markup=reply_markup)
         return
-
+    
+    # Check if user is a member of the force subscription channel
     if await user_in_channel(user_id, context):
         await update.message.reply_text("Welcome to the bot!")
     else:
+        # User is not in the channel, send force subscribe message with button
         keyboard = [[InlineKeyboardButton("Join Channel", url=CHANNEL_INVITE_LINK)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(FORCE_SUBSCRIBE_MESSAGE, reply_markup=reply_markup)
+        await update.message.reply_text(FORCE_SUB_MESSAGE, reply_markup=reply_markup)
 
 async def leech(update: Update, context: CallbackContext) -> None:
     user_id = update.effective_user.id
-
-    # Force Subscribe Check
+    
+    # Check if user is in a group chat
     if update.effective_chat.type == "private":
         keyboard = [[InlineKeyboardButton("Join Channel", url=CHANNEL_INVITE_LINK)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(FORCE_SUBSCRIBE_MESSAGE, reply_markup=reply_markup)
+        await update.message.reply_text("Join this force sub channel then send commands to the bot from here.", reply_markup=reply_markup)
         return
-
-    # Check for Valid Link
+    
+    # Check if the message contains a valid link
     if len(context.args) == 0:
         await update.message.reply_text("Please provide a valid downloadable link.")
         return
-
+    
     download_link = context.args[0]
-
-    # Download and Send File
+    
+    # Download the file from the provided link
     file_path = await download_file(download_link)
     if file_path:
-        try:
-            await context.bot.send_document(chat_id=user_id, document=open(file_path, 'rb'))
-            os.remove(file_path)  # Remove downloaded file after sending
-        except Exception as e:
-            await update.message.reply_text(f"Error sending file: {e}")
-            logger.error(f"Error sending file to {user_id}: {e}")
+        # Send the downloaded file to the user's personal chat
+        await context.bot.send_document(chat_id=user_id, document=open(file_path, 'rb'))
+        os.remove(file_path)  # Remove the downloaded file after sending
     else:
         await update.message.reply_text("Failed to download the file.")
 
 async def user_in_channel(user_id, context: CallbackContext):
-    # Check Force Subscribe Channel Membership
+    # Check if the user is a member of the force subscription channel
     try:
-        chat_member = await context.bot.get_chat_member(FORCE_SUBSCRIBE_CHANNEL_ID, user_id)
+        # Get channel information
+        channel_id = os.getenv("FORCE_SUBSCRIBE_CHANNEL_ID")  # Replace with your channel ID
+        chat_member = await context.bot.get_chat_member(channel_id, user_id)
+        
+        # If user is a member, return True
         return chat_member.status in ["member", "administrator", "creator"]
     except Exception as e:
-        print(f"Error checking channel membership for {user_id}: {e}")
+        print("Error checking channel membership:", e)
         return False
 
 async def download_file(download_link):
     try:
         response = requests.get(download_link)
         if response.status_code == 200:
-            # Extract Filename
+            # Get the filename from the Content-Disposition header
             content_disposition = response.headers.get("Content-Disposition")
             if content_disposition:
                 filename = content_disposition.split("filename=")[1].strip('"')
             else:
-                # If no Content-Disposition header, extract from URL
+                # If Content-Disposition header is not present, extract filename from the URL
                 filename = os.path.basename(urlparse(download_link).path)
-            # Create directory and save file
-            file_path = os.path.join("downloads", filename)
+            
+            file_path = os.path.join("downloads", filename)  # Save the file in a "downloads" directory
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, 'wb') as file:
                 file.write(response.content)
             return file_path
         else:
-            logger.error(f"Failed to download file: {download_link} (status code: {response.status_code})")
             return None
     except Exception as e:
-        logger.error(f"Error downloading file: {e}")
+        print("Error downloading file:", e)
         return None
 
-# Optional: Additional Commands (Uncomment and customize)
-
 async def broadcast(update: Update, context: CallbackContext) -> None:
-    if update.effective_user.id != OWNER_ID:
+    if update.effective_user.id != int(os.getenv("OWNER_ID")):
         await update.message.reply_text("You are not authorized to use this command.")
         return
-
+    
     message = " ".join(context.args)
     users = db.users.find({"blocked": False})
     for user in users:
@@ -119,35 +115,29 @@ async def broadcast(update: Update, context: CallbackContext) -> None:
             print(f"Failed to send message to {user['user_id']}: {e}")
 
 async def users(update: Update, context: CallbackContext) -> None:
-    if update.effective_user.id != OWNER_ID:
+    if update.effective_user.id != int(os.getenv("OWNER_ID")):
         await update.message.reply_text("You are not authorized to use this command.")
         return
-
+    
     total_users = db.users.count_documents({})
     blocked_users = db.users.count_documents({"blocked": True})
     active_users = total_users - blocked_users
-
+    
     await update.message.reply_text(f"Total users: {total_users}\nActive users: {active_users}\nBlocked users: {blocked_users}")
-
-# Error Handler
 
 def error(update: Update, context: CallbackContext) -> None:
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
-# Main Function
-
 async def start_application() -> None:
-    # Fix 1: Provide both arguments to Updater
-    updater = Updater(os.getenv("TELEGRAM_BOT_TOKEN"), use_context=True)
+    updater = Updater(os.getenv("TELEGRAM_BOT_TOKEN"), use_context=True)  # Pass `use_context=True`
     dispatcher = updater.dispatcher
 
     # Command handlers
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(CommandHandler("leech", leech))
-    # Uncomment these lines to add broadcast and user commands
-    # dispatcher.add_handler(CommandHandler("broadcast", broadcast))
-    # dispatcher.add_handler(CommandHandler("users", users))
+    dispatcher.add_handler(CommandHandler("broadcast", broadcast))
+    dispatcher.add_handler(CommandHandler("users", users))
 
     # Error handler
     dispatcher.add_error_handler(error)
@@ -157,11 +147,12 @@ async def start_application() -> None:
         listen="0.0.0.0",
         port=int(os.getenv("PORT")),
         url_path=os.getenv("TELEGRAM_BOT_TOKEN"),
-        webhook_url=os.getenv("WEBHOOK_URL") + os.getenv("TELEGRAM_BOT_TOKEN")
+        webhook_url=os.getenv("WEBHOOK_URL") + os.getenv("TELEGRAM_BOT_TOKEN"),
+        update_queue=None  # Provide `update_queue=None`
     )
 
-    # Fix 2: Await the start_coroutine
-    await updater.idle()
+    # Run the bot until you press Ctrl-C or the process receives SIGINT, SIGTERM or SIGABRT
+    updater.idle()
 
 if __name__ == "__main__":
     asyncio.run(start_application())
