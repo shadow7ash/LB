@@ -5,7 +5,7 @@ setup(
     version='1.0',
     packages=find_packages(),
     install_requires=[
-        'python-telegram-bot==13.5',
+        'python-telegram-bot>=20.0',
         'pymongo[srv]==4.0',
         'requests==2.25.1',
         'dnspython'
