@@ -1,5 +1,5 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, filters
 import pymongo
 import os
 
@@ -22,7 +22,7 @@ def start(update: Update, context: CallbackContext) -> None:
         return
 
     # Check if user is a member of the force subscription channel
-    if user_in_channel(user_id):
+    if user_in_channel(context, user_id):
         # User is in the channel, send welcome message
         keyboard = [[InlineKeyboardButton("Join Force Sub Channel", url=CHANNEL_INVITE_LINK)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -34,7 +34,7 @@ def start(update: Update, context: CallbackContext) -> None:
         reply_markup = InlineKeyboardMarkup(keyboard)
         update.message.reply_text(FORCE_SUB_MESSAGE, reply_markup=reply_markup)
 
-def user_in_channel(user_id):
+def user_in_channel(context, user_id):
     # Check if the user is a member of the force subscription channel
     try:
         # Get channel information
@@ -45,3 +45,17 @@ def user_in_channel(user_id):
     except Exception as e:
         print("Error checking channel membership:", e)
         return False
+
+def main() -> None:
+    updater = Updater("your_bot_token")  # Replace "your_bot_token" with your actual bot token
+    dispatcher = updater.dispatcher
+
+    # Command handlers
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("leech", leech))
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == "__main__":
+    main()
