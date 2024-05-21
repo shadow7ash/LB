@@ -3,16 +3,25 @@ import requests
 from telegram import Update, Bot
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from pymongo import MongoClient
+from bson.objectid import ObjectId
+
+# Enable logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 # Environment variables
 TOKEN = os.getenv('TOKEN')
 OWNER_ID = int(os.getenv('OWNER_ID'))
-MONGODB_URI = os.getenv('MONGODB_URI')
+MONGODB_URL = os.getenv("MONGODB_URL")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
 
-# Connect to MongoDB
-client = MongoClient(MONGODB_URI)
-db = client.get_database()
-user_stats_collection = db.user_stats
+# MongoDB client
+client = MongoClient(MONGODB_URL)
+db = client[DATABASE_NAME]
+users_collection = db['users']
 
 def start(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
