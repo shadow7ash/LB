@@ -4,19 +4,22 @@
   "repository": "https://github.com/shadow7ash/LB",
   "logo": "https://ibb.co/FgPVtzw",
   "keywords": ["telegram", "bot", "python"],
-  "addons": ["heroku-postgresql:hobby-dev"],
   "env": {
     "TOKEN": {
-      "description": "Your Telegram bot token."
+      "description": "Your Telegram bot token.",
+      "value": "YOUR_TELEGRAM_BOT_TOKEN"
     },
     "OWNER_ID": {
-      "description": "Your Telegram user ID."
+      "description": "Your Telegram user ID.",
+      "value": "YOUR_TELEGRAM_USER_ID"
     },
     "MONGODB_URL": {
-      "description": "Your MongoDB connection URL."
+      "description": "Your MongoDB connection URL.",
+      "value": "YOUR_MONGODB_URL"
     },
     "DATABASE_NAME": {
-      "description": "Your MongoDB database name."
+      "description": "Your MongoDB database name.",
+      "value": "YOUR_DATABASE_NAME"
     }
   }
 }
