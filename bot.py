@@ -65,21 +65,30 @@ def leech(update: Update, context: CallbackContext) -> None:
         # Notify the user that the file is downloading
         message = update.message.reply_text(f"Your file is downloading, please wait...\nFile size: {file_size_mb:.2f} MB")
 
+        # Set chunk size and update frequency
+        chunk_size = 1024
+        update_frequency = 5  # Update message after every 5 chunks
+        
+        chunk_count = 0
         with open(file_name, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=1024):
+            for chunk in r.iter_content(chunk_size=chunk_size):
                 if chunk:
                     f.write(chunk)
-                    # Update the message periodically
-                    try:
-                        context.bot.edit_message_text(
-                            text=f"Your file is downloading, please wait...\nFile size: {file_size_mb:.2f} MB",
-                            chat_id=update.message.chat_id,
-                            message_id=message.message_id
-                        )
-                        # Add a delay to avoid triggering flood control
-                        time.sleep(1)
-                    except Exception as e:
-                        logger.error(f"Error updating message: {str(e)}")
+                    chunk_count += 1
+                    if chunk_count % update_frequency == 0:
+                        # Update the message periodically
+                        try:
+                            updated_text = f"Your file is downloading, please wait...\nFile size: {file_size_mb:.2f} MB"
+                            if message.text != updated_text:  # Check if the message content has changed
+                                context.bot.edit_message_text(
+                                    text=updated_text,
+                                    chat_id=update.message.chat_id,
+                                    message_id=message.message_id
+                                )
+                                # Add a delay to avoid triggering flood control
+                                time.sleep(3)
+                        except Exception as e:
+                            logger.error(f"Error updating message: {str(e)}")
 
         context.bot.delete_message(chat_id=update.message.chat_id, message_id=message.message_id)
         update.message.reply_document(open(file_name, 'rb'), filename=file_name)
