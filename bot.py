@@ -69,8 +69,8 @@ def leech(update: Update, context: CallbackContext) -> None:
         chunk_size = 1024
         update_frequency = 5  # Update message after every 5 chunks
         
+        chunk_count = 0
         with open(file_name, 'wb') as f:
-            chunk_count = 0
             for chunk in r.iter_content(chunk_size=chunk_size):
                 if chunk:
                     f.write(chunk)
@@ -89,11 +89,12 @@ def leech(update: Update, context: CallbackContext) -> None:
                             logger.error(f"Error updating message: {str(e)}")
         
         # Send the document only after the file is completely downloaded
-        context.bot.delete_message(chat_id=update.message.chat_id, message_id=message.message_id)
         update.message.reply_document(open(file_name, 'rb'), filename=file_name)
+        context.bot.delete_message(chat_id=update.message.chat_id, message_id=message.message_id)
         os.remove(file_name)
     except Exception as e:
         update.message.reply_text(f"Error: {str(e)}")
+
 
 def help_command(update: Update, context: CallbackContext) -> None:
     update.message.reply_text("Send me a direct download link and I'll download the file for you.")
