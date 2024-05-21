@@ -17,13 +17,18 @@
       "required": true
     }
   },
-  "scripts": {
-    "postdeploy": "python bot.py"
-  },
+  "addons": [
+    {
+      "plan": "mongolab:sandbox"
+    }
+  ],
   "formation": {
     "worker": {
       "quantity": 1,
       "size": "free"
     }
+  },
+  "scripts": {
+    "postdeploy": "python bot.py"
   }
 }
