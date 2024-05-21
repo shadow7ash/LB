@@ -3,9 +3,6 @@
   "description": "A Telegram bot for downloading files via direct links.",
   "repository": "https://github.com/yourusername/telegram-leech-bot",
   "keywords": ["telegram", "bot", "leech", "download"],
-  "addons": [
-    "mongod"
-  ],
   "env": {
     "TOKEN": {
       "description": "Telegram bot token",
