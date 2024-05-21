@@ -4,7 +4,6 @@
   "repository": "https://github.com/shadow7ash/LB",
   "logo": "https://ibb.co/FgPVtzw",
   "keywords": ["telegram", "bot", "python"],
-  "addons": ["heroku-postgresql"],
   "env": {
     "TOKEN": {
       "description": "Your Telegram bot token.",
