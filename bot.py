@@ -4,6 +4,7 @@ import requests
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from pymongo import MongoClient
+import re
 
 # Enable logging
 logging.basicConfig(
@@ -28,12 +29,20 @@ def start(update: Update, context: CallbackContext) -> None:
     update.message.reply_text("Welcome to the Leech Bot! Send me a direct download link to get started.")
     update_user_stats(user_id)
 
+def find_first_link(text: str) -> str:
+    url_regex = re.compile(
+        r'(https?://[^\s]+)')
+    match = url_regex.search(text)
+    if match:
+        return match.group(0)
+    return None
+
 def leech(update: Update, context: CallbackContext) -> None:
     if update.message.reply_to_message:
         # Check if the replied message contains a link
-        if update.message.reply_to_message.text:
-            link = update.message.reply_to_message.text
-        else:
+        replied_message = update.message.reply_to_message.text
+        link = find_first_link(replied_message)
+        if not link:
             update.message.reply_text("The replied message does not contain a link.")
             return
     else:
@@ -45,10 +54,20 @@ def leech(update: Update, context: CallbackContext) -> None:
     try:
         file_name = link.split('/')[-1]
         r = requests.get(link, stream=True)
+        
+        # Get the file size
+        file_size = int(r.headers.get('Content-Length', 0))
+        file_size_mb = file_size / (1024 * 1024)
+
+        # Notify the user that the file is downloading
+        message = update.message.reply_text(f"Your file is downloading, please wait...\nFile size: {file_size_mb:.2f} MB")
+
         with open(file_name, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
+
+        context.bot.delete_message(chat_id=update.message.chat_id, message_id=message.message_id)
         update.message.reply_document(open(file_name, 'rb'), filename=file_name)
         os.remove(file_name)
     except Exception as e:
@@ -69,7 +88,43 @@ def broadcast(update: Update, context: CallbackContext) -> None:
         update.message.reply_text("You are not authorized to use this command.")
         return
 
-    # Implement the broadcast function
+    if update.message.reply_to_message:
+        # Broadcast the replied message
+        message = update.message.reply_to_message.text
+    else:
+        message = ' '.join(context.args)
+
+    if not message:
+        update.message.reply_text("Please provide a message to broadcast.")
+        return
+
+    total_users = user_stats_collection.count_documents({})
+    success_count = 0
+    failure_count = 0
+
+    users = user_stats_collection.find()
+    for user in users:
+        try:
+            context.bot.send_message(chat_id=user['user_id'], text=message)
+            success_count += 1
+        except Exception as e:
+            logger.error(f"Failed to send message to {user['user_id']}: {str(e)}")
+            failure_count += 1
+
+    active_users = total_users - failure_count
+    blocked_users = user_stats_collection.count_documents({"is_blocked": True})
+    deleted_users = user_stats_collection.count_documents({"is_deleted": True})
+
+    reply_message = (
+        f"Total users: {total_users}\n"
+        f"Successfully broadcasted to: {success_count} users\n"
+        f"Failed to broadcast to: {failure_count} users\n"
+        f"Active users: {active_users}\n"
+        f"Blocked users: {blocked_users}\n"
+        f"Deleted users: {deleted_users}"
+    )
+
+    update.message.reply_text(reply_message)
 
 def users(update: Update, context: CallbackContext) -> None:
     if update.message.from_user.id != OWNER_ID:
