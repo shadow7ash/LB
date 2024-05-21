@@ -34,6 +34,25 @@ async def start(update: Update, context: CallbackContext) -> None:
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text(FORCE_SUB_MESSAGE, reply_markup=reply_markup)
 
+async def leech(update: Update, context: CallbackContext) -> None:
+    user_id = update.effective_user.id
+
+    # Check if user is in a group chat
+    if update.effective_chat.type == "private":
+        await update.message.reply_text("Please use the bot only through the group.")
+        return
+
+    # Check if user is a member of the force subscription channel
+    if await user_in_channel(context, user_id):
+        # Your leech logic here
+        await update.message.reply_text("Leech functionality is under construction.")
+    else:
+        # User is not in the channel, send force subscribe message with button to join force sub channel
+        force_sub_channel_invite_link = await context.bot.export_chat_invite_link(FORCE_SUB_CHANNEL_ID)
+        keyboard = [[InlineKeyboardButton("Join Force Sub Channel", url=force_sub_channel_invite_link)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(FORCE_SUB_MESSAGE, reply_markup=reply_markup)
+
 async def user_in_channel(context, user_id):
     # Check if the user is a member of the force subscription channel
     try:
