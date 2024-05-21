@@ -18,6 +18,6 @@ setup(
     },
     description='A Leech bot for downloading files via direct links.',
     author='SA',
-    author_email='SA',
-    url='SA',
+    author_email='your_email@example.com',
+    url='https://github.com/yourusername/telegram-leech-bot',
 )
