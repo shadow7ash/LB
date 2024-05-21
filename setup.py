@@ -7,8 +7,8 @@ setup(
     install_requires=[
         'python-telegram-bot==20.0',
         'pymongo[srv]==4.0',
-        'dnspython',
-        'requests'
+        'requests==2.25.1',
+        'dnspython'
         
     ],
     entry_points={
@@ -16,8 +16,8 @@ setup(
             'telegram-leech-bot=bot:main'
         ],
     },
-    description='A Telegram bot for downloading files via direct links.',
-    author='Your Name',
-    author_email='your_email@example.com',
-    url='https://github.com/yourusername/telegram-leech-bot',
+    description='A Leech bot for downloading files via direct links.',
+    author='SA',
+    author_email='SA',
+    url='SA',
 )
