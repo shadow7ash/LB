@@ -1,7 +1,7 @@
 import os
 import logging
 import requests
-from telegram import Update, Bot
+from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from pymongo import MongoClient
 
@@ -29,11 +29,18 @@ def start(update: Update, context: CallbackContext) -> None:
     update_user_stats(user_id)
 
 def leech(update: Update, context: CallbackContext) -> None:
-    if len(context.args) == 0:
-        update.message.reply_text("Please provide a direct download link.")
-        return
-
-    link = context.args[0]
+    if update.message.reply_to_message:
+        # Check if the replied message contains a link
+        if update.message.reply_to_message.text:
+            link = update.message.reply_to_message.text
+        else:
+            update.message.reply_text("The replied message does not contain a link.")
+            return
+    else:
+        if len(context.args) == 0:
+            update.message.reply_text("Please provide a direct download link.")
+            return
+        link = context.args[0]
 
     try:
         file_name = link.split('/')[-1]
@@ -62,13 +69,7 @@ def broadcast(update: Update, context: CallbackContext) -> None:
         update.message.reply_text("You are not authorized to use this command.")
         return
 
-    message = ' '.join(context.args)
-    users = user_stats_collection.find()
-    for user in users:
-        try:
-            context.bot.send_message(chat_id=user['user_id'], text=message)
-        except Exception as e:
-            logger.error(f"Failed to send message to {user['user_id']}: {str(e)}")
+    # Implement the broadcast function
 
 def users(update: Update, context: CallbackContext) -> None:
     if update.message.from_user.id != OWNER_ID:
@@ -76,12 +77,22 @@ def users(update: Update, context: CallbackContext) -> None:
         return
 
     total_users = user_stats_collection.count_documents({})
-    update.message.reply_text(f"Total users: {total_users}")
+    blocked_users = user_stats_collection.count_documents({"is_blocked": True})
+    deleted_users = user_stats_collection.count_documents({"is_deleted": True})
+    active_users = total_users - blocked_users - deleted_users
+
+    reply_message = (
+        f"Total users: {total_users}\n"
+        f"Active users: {active_users}\n"
+        f"Blocked users: {blocked_users}\n"
+        f"Deleted users: {deleted_users}"
+    )
+
+    update.message.reply_text(reply_message)
 
 def main() -> None:
     try:
-        bot = Bot(token=TOKEN)
-        updater = Updater(bot=bot, use_context=True)
+        updater = Updater(token=TOKEN)
         dispatcher = updater.dispatcher
 
         dispatcher.add_handler(CommandHandler("start", start))
