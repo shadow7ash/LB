@@ -4,7 +4,7 @@
   "repository": "https://github.com/yourusername/telegram-leech-bot",
   "keywords": ["telegram", "bot", "leech", "download"],
   "addons": [
-    "heroku-mongodb"
+    "mongolab:sandbox"
   ],
   "env": {
     "TOKEN": {
