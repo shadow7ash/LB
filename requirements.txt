@@ -1,4 +1,4 @@
-python-telegram-bot==20.3
-pymongo[srv]==3.12.3
-requests==2.26.0
-urllib3[full]==1.26.7
+python-telegram-bot==20.0
+pymongo[srv]==4.0
+dnspython
+requests
