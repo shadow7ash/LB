@@ -5,6 +5,7 @@ from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from pymongo import MongoClient
 import re
+import time
 
 # Enable logging
 logging.basicConfig(
@@ -66,6 +67,15 @@ def leech(update: Update, context: CallbackContext) -> None:
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
                     f.write(chunk)
+                    # Update the message periodically
+                    try:
+                        context.bot.edit_message_text(
+                            text=f"Your file is downloading, please wait...\nFile size: {file_size_mb:.2f} MB",
+                            chat_id=update.message.chat_id,
+                            message_id=message.message_id
+                        )
+                    except Exception as e:
+                        logger.error(f"Error updating message: {str(e)}")
 
         context.bot.delete_message(chat_id=update.message.chat_id, message_id=message.message_id)
         update.message.reply_document(open(file_name, 'rb'), filename=file_name)
@@ -88,13 +98,28 @@ def broadcast(update: Update, context: CallbackContext) -> None:
         update.message.reply_text("You are not authorized to use this command.")
         return
 
+    message = None
+    file_id = None
+    file_type = None
     if update.message.reply_to_message:
-        # Broadcast the replied message
-        message = update.message.reply_to_message.text
+        if update.message.reply_to_message.text:
+            message = update.message.reply_to_message.text
+        elif update.message.reply_to_message.photo:
+            file_id = update.message.reply_to_message.photo[-1].file_id
+            file_type = 'photo'
+        elif update.message.reply_to_message.video:
+            file_id = update.message.reply_to_message.video.file_id
+            file_type = 'video'
+        elif update.message.reply_to_message.document:
+            file_id = update.message.reply_to_message.document.file_id
+            file_type = 'document'
+        else:
+            update.message.reply_text("Unsupported message type.")
+            return
     else:
         message = ' '.join(context.args)
-
-    if not message:
+    
+    if not message and not file_id:
         update.message.reply_text("Please provide a message to broadcast.")
         return
 
@@ -105,7 +130,15 @@ def broadcast(update: Update, context: CallbackContext) -> None:
     users = user_stats_collection.find()
     for user in users:
         try:
-            context.bot.send_message(chat_id=user['user_id'], text=message)
+            if message:
+                context.bot.send_message(chat_id=user['user_id'], text=message)
+            else:
+                if file_type == 'photo':
+                    context.bot.send_photo(chat_id=user['user_id'], photo=file_id)
+                elif file_type == 'video':
+                    context.bot.send_video(chat_id=user['user_id'], video=file_id)
+                elif file_type == 'document':
+                    context.bot.send_document(chat_id=user['user_id'], document=file_id)
             success_count += 1
         except Exception as e:
             logger.error(f"Failed to send message to {user['user_id']}: {str(e)}")
