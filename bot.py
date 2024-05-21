@@ -58,8 +58,12 @@ def leech(update: Update, context: CallbackContext) -> None:
         # Get the file name
         file_name = link.split('/')[-1]
 
+        # Get the file size
+        file_size = int(r.headers.get('Content-Length', 0))
+        file_size_mb = file_size / (1024 * 1024)
+
         # Notify the user that the file is downloading
-        message = update.message.reply_text(f"Your file is downloading, please wait...")
+        message = update.message.reply_text(f"Your file is downloading, please wait...\nFile size: {file_size_mb:.2f} MB")
 
         with open(file_name, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024):
@@ -68,10 +72,12 @@ def leech(update: Update, context: CallbackContext) -> None:
                     # Update the message periodically
                     try:
                         context.bot.edit_message_text(
-                            text="Your file is downloading, please wait...",
+                            text=f"Your file is downloading, please wait...\nFile size: {file_size_mb:.2f} MB",
                             chat_id=update.message.chat_id,
                             message_id=message.message_id
                         )
+                        # Add a delay to avoid triggering flood control
+                        time.sleep(1)
                     except Exception as e:
                         logger.error(f"Error updating message: {str(e)}")
 
