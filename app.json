@@ -6,7 +6,7 @@
   "keywords": ["telegram", "bot", "python"],
   "addons": ["heroku-postgresql"],
   "env": {
-    "TELEGRAM_BOT_TOKEN": {
+    "TOKEN": {
       "description": "Your Telegram bot token."
     },
     "OWNER_ID": {
