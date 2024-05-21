@@ -1,5 +1,5 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, CallbackContext, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters
 import pymongo
 import os
 
@@ -13,32 +13,32 @@ FORCE_SUB_MESSAGE = "Please join our channel to access the bot's features."
 CHANNEL_INVITE_LINK = "https://t.me/your_channel_invite_link"  # Replace with your channel invite link
 FORCE_SUB_CHANNEL_ID = "your_force_sub_channel_id"  # Replace with your force sub channel ID
 
-def start(update: Update, context: CallbackContext) -> None:
+async def start(update: Update, context: CallbackContext) -> None:
     user_id = update.effective_user.id
 
     # Check if user is in a group chat
     if update.effective_chat.type == "private":
-        update.message.reply_text("Please use the bot only through the group.")
+        await update.message.reply_text("Please use the bot only through the group.")
         return
 
     # Check if user is a member of the force subscription channel
-    if user_in_channel(context, user_id):
+    if await user_in_channel(context, user_id):
         # User is in the channel, send welcome message
         keyboard = [[InlineKeyboardButton("Join Force Sub Channel", url=CHANNEL_INVITE_LINK)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        update.message.reply_text("Welcome to the bot! If you want to use me, please send commands in the force subscription channel.", reply_markup=reply_markup)
+        await update.message.reply_text("Welcome to the bot! If you want to use me, please send commands in the force subscription channel.", reply_markup=reply_markup)
     else:
         # User is not in the channel, send force subscribe message with button to join force sub channel
-        force_sub_channel_invite_link = context.bot.export_chat_invite_link(FORCE_SUB_CHANNEL_ID)
+        force_sub_channel_invite_link = await context.bot.export_chat_invite_link(FORCE_SUB_CHANNEL_ID)
         keyboard = [[InlineKeyboardButton("Join Force Sub Channel", url=force_sub_channel_invite_link)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        update.message.reply_text(FORCE_SUB_MESSAGE, reply_markup=reply_markup)
+        await update.message.reply_text(FORCE_SUB_MESSAGE, reply_markup=reply_markup)
 
-def user_in_channel(context, user_id):
+async def user_in_channel(context, user_id):
     # Check if the user is a member of the force subscription channel
     try:
         # Get channel information
-        chat_member = context.bot.get_chat_member(FORCE_SUB_CHANNEL_ID, user_id)
+        chat_member = await context.bot.get_chat_member(FORCE_SUB_CHANNEL_ID, user_id)
         
         # If user is a member, return True
         return chat_member.status == "member"
@@ -47,15 +47,13 @@ def user_in_channel(context, user_id):
         return False
 
 def main() -> None:
-    updater = Updater("your_bot_token")  # Replace "your_bot_token" with your actual bot token
-    dispatcher = updater.dispatcher
+    application = Application.builder().token("your_bot_token").build()  # Replace "your_bot_token" with your actual bot token
 
     # Command handlers
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("leech", leech))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("leech", leech))
 
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 if __name__ == "__main__":
     main()
