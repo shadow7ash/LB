@@ -13,14 +13,12 @@
       "required": true
     },
     "MONGODB_URI": {
-      "description": "MongoDB connection URI",
+      "description": "MongoDB Atlas connection URI",
       "required": true
     }
   },
   "addons": [
-    {
-      "plan": "mongolab:sandbox"
-    }
+    "mongodb-atlas"
   ],
   "formation": {
     "worker": {
