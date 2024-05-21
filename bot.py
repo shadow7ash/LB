@@ -1,10 +1,9 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Application, CommandHandler, ContextTypes
 import pymongo
 import os
 import requests
 from urllib.parse import urlparse
-import asyncio
 import logging
 
 # MongoDB setup
@@ -20,7 +19,7 @@ CHANNEL_INVITE_LINK = "https://t.me/your_channel_invite_link"  # Replace with yo
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def start(update: Update, context: CallbackContext) -> None:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     
     # Check if user is in a group chat
@@ -39,7 +38,7 @@ async def start(update: Update, context: CallbackContext) -> None:
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text(FORCE_SUB_MESSAGE, reply_markup=reply_markup)
 
-async def leech(update: Update, context: CallbackContext) -> None:
+async def leech(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     
     # Check if user is in a group chat
@@ -65,7 +64,7 @@ async def leech(update: Update, context: CallbackContext) -> None:
     else:
         await update.message.reply_text("Failed to download the file.")
 
-async def user_in_channel(user_id, context: CallbackContext):
+async def user_in_channel(user_id, context: ContextTypes.DEFAULT_TYPE):
     # Check if the user is a member of the force subscription channel
     try:
         # Get channel information
@@ -101,7 +100,7 @@ async def download_file(download_link):
         print("Error downloading file:", e)
         return None
 
-async def broadcast(update: Update, context: CallbackContext) -> None:
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_user.id != int(os.getenv("OWNER_ID")):
         await update.message.reply_text("You are not authorized to use this command.")
         return
@@ -114,7 +113,7 @@ async def broadcast(update: Update, context: CallbackContext) -> None:
         except Exception as e:
             print(f"Failed to send message to {user['user_id']}: {e}")
 
-async def users(update: Update, context: CallbackContext) -> None:
+async def users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.effective_user.id != int(os.getenv("OWNER_ID")):
         await update.message.reply_text("You are not authorized to use this command.")
         return
@@ -125,34 +124,39 @@ async def users(update: Update, context: CallbackContext) -> None:
     
     await update.message.reply_text(f"Total users: {total_users}\nActive users: {active_users}\nBlocked users: {blocked_users}")
 
-def error(update: Update, context: CallbackContext) -> None:
+def error(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
 async def start_application() -> None:
-    updater = Updater(os.getenv("TELEGRAM_BOT_TOKEN"), use_context=True)  # Pass `use_context=True`
-    dispatcher = updater.dispatcher
+    application = Application.builder().token(os.getenv("TELEGRAM_BOT_TOKEN")).build()
 
     # Command handlers
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("leech", leech))
-    dispatcher.add_handler(CommandHandler("broadcast", broadcast))
-    dispatcher.add_handler(CommandHandler("users", users))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("leech", leech))
+    application.add_handler(CommandHandler("broadcast", broadcast))
+    application.add_handler(CommandHandler("users", users))
 
     # Error handler
-    dispatcher.add_error_handler(error)
+    application.add_error_handler(error)
 
     # Start the webhook
-    await updater.start_webhook(
+    await application.start_webhook(
         listen="0.0.0.0",
         port=int(os.getenv("PORT")),
         url_path=os.getenv("TELEGRAM_BOT_TOKEN"),
-        webhook_url=os.getenv("WEBHOOK_URL") + os.getenv("TELEGRAM_BOT_TOKEN"),
-        update_queue=None  # Provide `update_queue=None`
+        webhook_url=os.getenv("WEBHOOK_URL") + os.getenv("TELEGRAM_BOT_TOKEN")
     )
 
     # Run the bot until you press Ctrl-C or the process receives SIGINT, SIGTERM or SIGABRT
-    updater.idle()
+    await application.updater.start_polling()
+    await application.idle()
 
 if __name__ == "__main__":
-    asyncio.run(start_application())
+    import asyncio
+
+    # Get the default event loop
+    loop = asyncio.get_event_loop()
+
+    # Run the start_application coroutine within the event loop
+    loop.run_until_complete(start_application())
