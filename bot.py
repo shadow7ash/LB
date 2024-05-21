@@ -80,7 +80,7 @@ def users(update: Update, context: CallbackContext) -> None:
 
 def main() -> None:
     try:
-        updater = Updater(TOKEN, use_context=True)
+        updater = Updater(TOKEN)
         dispatcher = updater.dispatcher
 
         dispatcher.add_handler(CommandHandler("start", start))

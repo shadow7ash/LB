@@ -7,22 +7,20 @@
   "addons": ["heroku-postgresql"],
   "env": {
     "TOKEN": {
-      "description": "Your Telegram bot token."
+      "description": "Your Telegram bot token.",
+      "value": "YOUR_TELEGRAM_BOT_TOKEN"
     },
     "OWNER_ID": {
-      "description": "Your Telegram user ID."
-    },
-    "FORCE_SUBSCRIBE_MESSAGE": {
-      "description": "Message to prompt users to subscribe to your channel."
-    },
-    "FORCE_SUBSCRIBE_CHANNEL_ID": {
-      "description": "Channel ID for force subscribe message."
+      "description": "Your Telegram user ID.",
+      "value": "YOUR_TELEGRAM_USER_ID"
     },
     "MONGODB_URL": {
-      "description": "Your MongoDB connection URL."
+      "description": "Your MongoDB connection URL.",
+      "value": "YOUR_MONGODB_URL"
     },
     "DATABASE_NAME": {
-      "description": "Your MongoDB database name."
+      "description": "Your MongoDB database name.",
+      "value": "YOUR_DATABASE_NAME"
     }
   }
 }
