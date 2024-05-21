@@ -5,6 +5,7 @@ import os
 import requests
 from urllib.parse import urlparse
 import asyncio
+import logging
 
 # MongoDB setup
 MONGODB_URL = os.getenv("MONGODB_URL")
@@ -14,6 +15,10 @@ db = client["your_database_name"]  # Replace "your_database_name" with your actu
 # Force subscribe message
 FORCE_SUB_MESSAGE = os.getenv("FORCE_SUBSCRIBE_MESSAGE", "Please join our channel to access the bot's features.")
 CHANNEL_INVITE_LINK = "https://t.me/your_channel_invite_link"  # Replace with your channel invite link
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 async def start(update: Update, context: CallbackContext) -> None:
     user_id = update.effective_user.id
@@ -141,9 +146,9 @@ async def start_application() -> None:
     await updater.start_webhook(
         listen="0.0.0.0",
         port=int(os.getenv("PORT")),
-        url_path=os.getenv("TELEGRAM_BOT_TOKEN")
+        url_path=os.getenv("TELEGRAM_BOT_TOKEN"),
+        webhook_url=os.getenv("WEBHOOK_URL") + os.getenv("TELEGRAM_BOT_TOKEN")
     )
-    updater.bot.set_webhook(os.getenv("WEBHOOK_URL") + os.getenv("TELEGRAM_BOT_TOKEN"))
 
     # Run the bot until you press Ctrl-C or the process receives SIGINT, SIGTERM or SIGABRT
     updater.idle()

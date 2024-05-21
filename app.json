@@ -8,23 +8,33 @@
   "env": {
     "TELEGRAM_BOT_TOKEN": {
       "description": "Your Telegram bot token.",
-      "value": ""
+      "value": "6741627335:AAGoE0VmRqiWzh3zixnldm79ghGqp1ZXeF8"
     },
     "OWNER_ID": {
       "description": "Your Telegram user ID.",
-      "value": ""
+      "value": "1950033192"
     },
     "FORCE_SUBSCRIBE_MESSAGE": {
       "description": "Message to prompt users to subscribe to your channel.",
-      "value": "Please join our channel to access the bot's features."
+      "value": "Hello Buddy 😁🤟🏻
+
+      Please join our channel to start the bot 🤟🏻"
     },
     "FORCE_SUBSCRIBE_CHANNEL_ID": {
       "description": "Channel ID for force subscribe message.",
-      "value": ""
+      "value": "-2001686502"
     },
     "MONGODB_URL": {
       "description": "Your MongoDB connection URL.",
-      "value": ""
+      "value": "mongodb+srv://chrozicgaming:chrozicgaming@cluster0.nnz1u5m.mongodb.net/?retryWrites=true&w=majority"
+    },
+    "PORT": {
+      "description": "The port on which the bot will listen.",
+      "value": "8443"
+    },
+    "WEBHOOK_URL": {
+      "description": "The URL for the webhook, typically your Heroku app URL.",
+      "value": "https://sa-leech-bot.herokuapp.com/6741627335:AAGoE0VmRqiWzh3zixnldm79ghGqp1ZXeF8"
     }
   }
 }
