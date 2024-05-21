@@ -1,7 +1,7 @@
 import os
 import logging
 import requests
-from telegram import Update
+from telegram import Update, Bot
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from pymongo import MongoClient
 
@@ -80,7 +80,8 @@ def users(update: Update, context: CallbackContext) -> None:
 
 def main() -> None:
     try:
-        updater = Updater(token=TOKEN)
+        bot = Bot(token=TOKEN)
+        updater = Updater(bot=bot, use_context=True)
         dispatcher = updater.dispatcher
 
         dispatcher.add_handler(CommandHandler("start", start))
