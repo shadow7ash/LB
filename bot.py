@@ -1,10 +1,9 @@
 import os
-import logging  # Import the logging module
+import logging
 import requests
-from telegram import Update, Bot
+from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 from pymongo import MongoClient
-from bson.objectid import ObjectId
 
 # Enable logging
 logging.basicConfig(
@@ -22,7 +21,7 @@ DATABASE_NAME = os.getenv("DATABASE_NAME")
 # MongoDB client
 client = MongoClient(MONGODB_URL)
 db = client[DATABASE_NAME]
-users_collection = db['users']
+user_stats_collection = db['user_stats']
 
 def start(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
@@ -69,7 +68,7 @@ def broadcast(update: Update, context: CallbackContext) -> None:
         try:
             context.bot.send_message(chat_id=user['user_id'], text=message)
         except Exception as e:
-            print(f"Failed to send message to {user['user_id']}: {str(e)}")
+            logger.error(f"Failed to send message to {user['user_id']}: {str(e)}")
 
 def users(update: Update, context: CallbackContext) -> None:
     if update.message.from_user.id != OWNER_ID:
@@ -80,17 +79,20 @@ def users(update: Update, context: CallbackContext) -> None:
     update.message.reply_text(f"Total users: {total_users}")
 
 def main() -> None:
-    updater = Updater(TOKEN)
-    dispatcher = updater.dispatcher
+    try:
+        updater = Updater(TOKEN, use_context=True)
+        dispatcher = updater.dispatcher
 
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("help", help_command))
-    dispatcher.add_handler(CommandHandler("leech", leech))
-    dispatcher.add_handler(CommandHandler("broadcast", broadcast))
-    dispatcher.add_handler(CommandHandler("users", users))
+        dispatcher.add_handler(CommandHandler("start", start))
+        dispatcher.add_handler(CommandHandler("help", help_command))
+        dispatcher.add_handler(CommandHandler("leech", leech))
+        dispatcher.add_handler(CommandHandler("broadcast", broadcast))
+        dispatcher.add_handler(CommandHandler("users", users))
 
-    updater.start_polling()
-    updater.idle()
+        updater.start_polling()
+        updater.idle()
+    except Exception as e:
+        logger.error(f"Error occurred: {str(e)}")
 
 if __name__ == '__main__':
     main()
