@@ -188,4 +188,5 @@ async def main() -> None:
         logger.error(f"Error occurred: {str(e)}")
 
 if __name__ == '__main__':
-    asyncio.run
+    asyncio.run(main())
+
