@@ -5,8 +5,9 @@ import re
 import aiohttp
 import asyncio
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from pymongo import MongoClient
+from telegram.ext import Updater, CommandHandler, ContextTypes
+
 
 # Enable logging
 logging.basicConfig(
@@ -172,17 +173,17 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def main() -> None:
     try:
-        application = ApplicationBuilder().token(TOKEN).build()
+        updater = Updater(token=TOKEN)
+        dispatcher = updater.dispatcher
 
-        application.add_handler(CommandHandler("start", start))
-        application.add_handler(CommandHandler("help", help_command))
-        application.add_handler(CommandHandler("leech", leech))
-        application.add_handler(CommandHandler("broadcast", broadcast))
-        application.add_handler(CommandHandler("users", users))
+        dispatcher.add_handler(CommandHandler("start", start))
+        dispatcher.add_handler(CommandHandler("help", help_command))
+        dispatcher.add_handler(CommandHandler("leech", leech))
+        dispatcher.add_handler(CommandHandler("broadcast", broadcast))
+        dispatcher.add_handler(CommandHandler("users", users))
 
-        await application.start()
-        await application.updater.start_polling()
-        await application.updater.idle()
+        await updater.start_polling()
+        await updater.idle()
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
 
