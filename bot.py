@@ -6,7 +6,7 @@ import aiohttp
 import asyncio
 from telegram import Update
 from pymongo import MongoClient
-from telegram.ext import Updater, CommandHandler, ContextTypes
+from telegram.ext import Updater, CommandHandler, CallbackContext
 
 
 # Enable logging
