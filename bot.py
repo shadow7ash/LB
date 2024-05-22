@@ -27,7 +27,7 @@ client = MongoClient(MONGODB_URL)
 db = client[DATABASE_NAME]
 user_stats_collection = db['user_stats']
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def start(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     await update.message.reply_text("Welcome to the Leech Bot! Send me a direct download link to get started.")
     await update_user_stats(user_id)
@@ -39,7 +39,7 @@ def find_first_link(text: str) -> str:
         return match.group(0)
     return None
 
-async def leech(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def leech(update: Update, context: CallbackContext) -> None:
     if update.message.reply_to_message:
         replied_message = update.message.reply_to_message.text
         link = find_first_link(replied_message)
@@ -76,7 +76,7 @@ async def leech(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     except Exception as e:
         await update.message.reply_text(f"Error: {str(e)}")
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def help_command(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text("Send me a direct download link and I'll download the file for you.")
 
 async def update_user_stats(user_id: int) -> None:
@@ -86,7 +86,7 @@ async def update_user_stats(user_id: int) -> None:
         upsert=True
     )
 
-async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def broadcast(update: Update, context: CallbackContext) -> None:
     if update.message.from_user.id != OWNER_ID:
         await update.message.reply_text("You are not authorized to use this command.")
         return
@@ -152,7 +152,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     await update.message.reply_text(reply_message)
 
-async def users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def users(update: Update, context: CallbackContext) -> None:
     if update.message.from_user.id != OWNER_ID:
         await update.message.reply_text("You are not authorized to use this command.")
         return
@@ -188,4 +188,4 @@ async def main() -> None:
         logger.error(f"Error occurred: {str(e)}")
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.run
