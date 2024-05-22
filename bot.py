@@ -1,11 +1,12 @@
 import os
 import logging
-import requests
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
-from pymongo import MongoClient
+import subprocess
 import re
-import time
+import aiohttp
+import asyncio
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from pymongo import MongoClient
 
 # Enable logging
 logging.basicConfig(
@@ -25,90 +26,68 @@ client = MongoClient(MONGODB_URL)
 db = client[DATABASE_NAME]
 user_stats_collection = db['user_stats']
 
-def start(update: Update, context: CallbackContext) -> None:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.message.from_user.id
-    update.message.reply_text("Welcome to the Leech Bot! Send me a direct download link to get started.")
-    update_user_stats(user_id)
+    await update.message.reply_text("Welcome to the Leech Bot! Send me a direct download link to get started.")
+    await update_user_stats(user_id)
 
 def find_first_link(text: str) -> str:
-    url_regex = re.compile(
-        r'(https?://[^\s]+)')
+    url_regex = re.compile(r'(https?://[^\s]+)')
     match = url_regex.search(text)
     if match:
         return match.group(0)
     return None
 
-def leech(update: Update, context: CallbackContext) -> None:
+async def leech(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.reply_to_message:
-        # Check if the replied message contains a link
         replied_message = update.message.reply_to_message.text
         link = find_first_link(replied_message)
         if not link:
-            update.message.reply_text("The replied message does not contain a link.")
+            await update.message.reply_text("The replied message does not contain a link.")
             return
     else:
         if len(context.args) == 0:
-            update.message.reply_text("Please provide a direct download link.")
+            await update.message.reply_text("Please provide a direct download link.")
             return
         link = context.args[0]
 
     try:
-        r = requests.get(link, stream=True)
-        
         # Get the file name
         file_name = link.split('/')[-1]
 
-        # Get the file size
-        file_size = int(r.headers.get('Content-Length', 0))
-        file_size_mb = file_size / (1024 * 1024)
-
         # Notify the user that the file is downloading
-        message = update.message.reply_text(f"Your file is downloading, please wait...\nFile size: {file_size_mb:.2f} MB")
+        message = await update.message.reply_text(f"Your file is downloading, please wait...")
 
-        # Set chunk size and update frequency
-        chunk_size = 1024
-        update_frequency = 5  # Update message after every 5 chunks
-        
-        chunk_count = 0
-        with open(file_name, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=chunk_size):
-                if chunk:
-                    f.write(chunk)
-                    chunk_count += 1
-                    if chunk_count % update_frequency == 0:
-                        # Update the message periodically
-                        try:
-                            updated_text = f"Your file is downloading, please wait...\nFile size: {file_size_mb:.2f} MB"
-                            if message.text != updated_text:  # Check if the message content has changed
-                                context.bot.edit_message_text(
-                                    text=updated_text,
-                                    chat_id=update.message.chat_id,
-                                    message_id=message.message_id
-                                )
-                        except Exception as e:
-                            logger.error(f"Error updating message: {str(e)}")
-        
+        # Use aria2c to download the file
+        aria2c_command = [
+            'aria2c', link,
+            '--max-connection-per-server=16',
+            '--split=16',
+            '--out', file_name
+        ]
+        process = await asyncio.create_subprocess_exec(*aria2c_command)
+        await process.communicate()
+
         # Send the document only after the file is completely downloaded
-        update.message.reply_document(open(file_name, 'rb'), filename=file_name)
-        context.bot.delete_message(chat_id=update.message.chat_id, message_id=message.message_id)
+        await update.message.reply_document(open(file_name, 'rb'), filename=file_name)
+        await context.bot.delete_message(chat_id=update.message.chat_id, message_id=message.message_id)
         os.remove(file_name)
     except Exception as e:
-        update.message.reply_text(f"Error: {str(e)}")
+        await update.message.reply_text(f"Error: {str(e)}")
 
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("Send me a direct download link and I'll download the file for you.")
 
-def help_command(update: Update, context: CallbackContext) -> None:
-    update.message.reply_text("Send me a direct download link and I'll download the file for you.")
-
-def update_user_stats(user_id: int) -> None:
+async def update_user_stats(user_id: int) -> None:
     user_stats_collection.update_one(
         {"user_id": user_id},
         {"$inc": {"downloads": 1}},
         upsert=True
     )
 
-def broadcast(update: Update, context: CallbackContext) -> None:
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.from_user.id != OWNER_ID:
-        update.message.reply_text("You are not authorized to use this command.")
+        await update.message.reply_text("You are not authorized to use this command.")
         return
 
     message = None
@@ -127,13 +106,13 @@ def broadcast(update: Update, context: CallbackContext) -> None:
             file_id = update.message.reply_to_message.document.file_id
             file_type = 'document'
         else:
-            update.message.reply_text("Unsupported message type.")
+            await update.message.reply_text("Unsupported message type.")
             return
     else:
         message = ' '.join(context.args)
     
     if not message and not file_id:
-        update.message.reply_text("Please provide a message to broadcast.")
+        await update.message.reply_text("Please provide a message to broadcast.")
         return
 
     total_users = user_stats_collection.count_documents({})
@@ -144,14 +123,14 @@ def broadcast(update: Update, context: CallbackContext) -> None:
     for user in users:
         try:
             if message:
-                context.bot.send_message(chat_id=user['user_id'], text=message)
+                await context.bot.send_message(chat_id=user['user_id'], text=message)
             else:
                 if file_type == 'photo':
-                    context.bot.send_photo(chat_id=user['user_id'], photo=file_id)
+                    await context.bot.send_photo(chat_id=user['user_id'], photo=file_id)
                 elif file_type == 'video':
-                    context.bot.send_video(chat_id=user['user_id'], video=file_id)
+                    await context.bot.send_video(chat_id=user['user_id'], video=file_id)
                 elif file_type == 'document':
-                    context.bot.send_document(chat_id=user['user_id'], document=file_id)
+                    await context.bot.send_document(chat_id=user['user_id'], document=file_id)
             success_count += 1
         except Exception as e:
             logger.error(f"Failed to send message to {user['user_id']}: {str(e)}")
@@ -170,11 +149,11 @@ def broadcast(update: Update, context: CallbackContext) -> None:
         f"Deleted users: {deleted_users}"
     )
 
-    update.message.reply_text(reply_message)
+    await update.message.reply_text(reply_message)
 
-def users(update: Update, context: CallbackContext) -> None:
+async def users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.from_user.id != OWNER_ID:
-        update.message.reply_text("You are not authorized to use this command.")
+        await update.message.reply_text("You are not authorized to use this command.")
         return
 
     total_users = user_stats_collection.count_documents({})
@@ -189,23 +168,23 @@ def users(update: Update, context: CallbackContext) -> None:
         f"Deleted users: {deleted_users}"
     )
 
-    update.message.reply_text(reply_message)
+    await update.message.reply_text(reply_message)
 
-def main() -> None:
+async def main() -> None:
     try:
-        updater = Updater(token=TOKEN)
-        dispatcher = updater.dispatcher
+        application = ApplicationBuilder().token(TOKEN).build()
 
-        dispatcher.add_handler(CommandHandler("start", start))
-        dispatcher.add_handler(CommandHandler("help", help_command))
-        dispatcher.add_handler(CommandHandler("leech", leech))
-        dispatcher.add_handler(CommandHandler("broadcast", broadcast))
-        dispatcher.add_handler(CommandHandler("users", users))
+        application.add_handler(CommandHandler("start", start))
+        application.add_handler(CommandHandler("help", help_command))
+        application.add_handler(CommandHandler("leech", leech))
+        application.add_handler(CommandHandler("broadcast", broadcast))
+        application.add_handler(CommandHandler("users", users))
 
-        updater.start_polling()
-        updater.idle()
+        await application.start()
+        await application.updater.start_polling()
+        await application.updater.idle()
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
