@@ -2,12 +2,10 @@ import os
 import logging
 import subprocess
 import re
-import aiohttp
 import asyncio
 from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from pymongo import MongoClient
-from telegram.ext import Updater, CommandHandler, CallbackContext
-
 
 # Enable logging
 logging.basicConfig(
@@ -27,7 +25,7 @@ client = MongoClient(MONGODB_URL)
 db = client[DATABASE_NAME]
 user_stats_collection = db['user_stats']
 
-async def start(update: Update, context: CallbackContext) -> None:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.message.from_user.id
     await update.message.reply_text("Welcome to the Leech Bot! Send me a direct download link to get started.")
     await update_user_stats(user_id)
@@ -39,7 +37,7 @@ def find_first_link(text: str) -> str:
         return match.group(0)
     return None
 
-async def leech(update: Update, context: CallbackContext) -> None:
+async def leech(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.reply_to_message:
         replied_message = update.message.reply_to_message.text
         link = find_first_link(replied_message)
@@ -76,7 +74,7 @@ async def leech(update: Update, context: CallbackContext) -> None:
     except Exception as e:
         await update.message.reply_text(f"Error: {str(e)}")
 
-async def help_command(update: Update, context: CallbackContext) -> None:
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Send me a direct download link and I'll download the file for you.")
 
 async def update_user_stats(user_id: int) -> None:
@@ -86,7 +84,7 @@ async def update_user_stats(user_id: int) -> None:
         upsert=True
     )
 
-async def broadcast(update: Update, context: CallbackContext) -> None:
+async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.from_user.id != OWNER_ID:
         await update.message.reply_text("You are not authorized to use this command.")
         return
@@ -152,7 +150,7 @@ async def broadcast(update: Update, context: CallbackContext) -> None:
 
     await update.message.reply_text(reply_message)
 
-async def users(update: Update, context: CallbackContext) -> None:
+async def users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.from_user.id != OWNER_ID:
         await update.message.reply_text("You are not authorized to use this command.")
         return
@@ -173,20 +171,19 @@ async def users(update: Update, context: CallbackContext) -> None:
 
 async def main() -> None:
     try:
-        updater = Updater(token=TOKEN)
-        dispatcher = updater.dispatcher
+        application = ApplicationBuilder().token(TOKEN).build()
 
-        dispatcher.add_handler(CommandHandler("start", start))
-        dispatcher.add_handler(CommandHandler("help", help_command))
-        dispatcher.add_handler(CommandHandler("leech", leech))
-        dispatcher.add_handler(CommandHandler("broadcast", broadcast))
-        dispatcher.add_handler(CommandHandler("users", users))
+        application.add_handler(CommandHandler("start", start))
+        application.add_handler(CommandHandler("help", help_command))
+        application.add_handler(CommandHandler("leech", leech))
+        application.add_handler(CommandHandler("broadcast", broadcast))
+        application.add_handler(CommandHandler("users", users))
 
-        await updater.start_polling()
-        await updater.idle()
+        await application.initialize()
+        await application.start_polling()
+        await application.idle()
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
 
 if __name__ == '__main__':
     asyncio.run(main())
-
