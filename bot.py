@@ -180,8 +180,8 @@ async def main() -> None:
         application.add_handler(CommandHandler("users", users))
 
         await application.initialize()
+        await application.delete_webhook(drop_pending_updates=True)
         await application.start()
-        await application.bot.delete_webhook(drop_pending_updates=True)
         await application.updater.start_polling()
         await application.updater.wait_until_idle()
     except Exception as e:
