@@ -180,8 +180,9 @@ async def main() -> None:
         application.add_handler(CommandHandler("users", users))
 
         await application.initialize()
-        await application.start_polling()
-        await application.idle()
+        await application.start()
+        await application.updater.start_polling()
+        await application.updater.idle()
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
 
