@@ -1,4 +1,4 @@
-python-telegram-bot[async]==13.5
+python-telegram-bot[async]
 pymongo[srv]
 requests
 aiohttp
