@@ -181,6 +181,7 @@ async def main() -> None:
 
         await application.initialize()
         await application.start()
+        await application.delete_webhook(drop_pending_updates=True)
         await application.updater.start_polling()
         await application.updater.wait_until_idle()
     except Exception as e:
