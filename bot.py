@@ -28,7 +28,7 @@ user_stats_collection = db['user_stats']
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.message.from_user.id
     await update.message.reply_text("Welcome to the Leech Bot! Send me a direct download link to get started.")
-    await update_user_stats(user_id)
+    update_user_stats(user_id)
 
 def find_first_link(text: str) -> str:
     url_regex = re.compile(r'(https?://[^\s]+)')
@@ -77,7 +77,7 @@ async def leech(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Send me a direct download link and I'll download the file for you.")
 
-async def update_user_stats(user_id: int) -> None:
+def update_user_stats(user_id: int) -> None:
     user_stats_collection.update_one(
         {"user_id": user_id},
         {"$inc": {"downloads": 1}},
@@ -180,7 +180,7 @@ async def main() -> None:
         application.add_handler(CommandHandler("users", users))
 
         await application.initialize()
-        await application.delete_webhook(drop_pending_updates=True)
+        await application.bot.delete_webhook(drop_pending_updates=True)
         await application.start()
         await application.updater.start_polling()
         await application.updater.wait_until_idle()
