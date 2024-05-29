@@ -174,6 +174,8 @@ async def main() -> None:
         await application.run_polling()
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
+        if application:
+            await application.stop()
 
 if __name__ == '__main__':
     asyncio.run(main())
