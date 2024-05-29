@@ -1,5 +1,5 @@
-python-telegram-bot[async]
-pymongo[srv]
-requests
+python-telegram-bot[async]>=20.0
+pymongo[srv]>=4.0
+requests>=2.25.1
 aiohttp
 dnspython

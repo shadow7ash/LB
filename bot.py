@@ -1,10 +1,9 @@
 import os
 import logging
-import subprocess
 import re
 import asyncio
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, ContextTypes
 from pymongo import MongoClient
 
 # Enable logging
@@ -33,9 +32,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 def find_first_link(text: str) -> str:
     url_regex = re.compile(r'(https?://[^\s]+)')
     match = url_regex.search(text)
-    if match:
-        return match.group(0)
-    return None
+    return match.group(0) if match else None
 
 async def leech(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.reply_to_message:
@@ -45,19 +42,15 @@ async def leech(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await update.message.reply_text("The replied message does not contain a link.")
             return
     else:
-        if len(context.args) == 0:
+        if not context.args:
             await update.message.reply_text("Please provide a direct download link.")
             return
         link = context.args[0]
 
     try:
-        # Get the file name
         file_name = link.split('/')[-1]
-
-        # Notify the user that the file is downloading
         message = await update.message.reply_text(f"Your file is downloading, please wait...")
 
-        # Use aria2c to download the file
         aria2c_command = [
             'aria2c', link,
             '--max-connection-per-server=16',
@@ -67,7 +60,6 @@ async def leech(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         process = await asyncio.create_subprocess_exec(*aria2c_command)
         await process.communicate()
 
-        # Send the document only after the file is completely downloaded
         await update.message.reply_document(open(file_name, 'rb'), filename=file_name)
         await context.bot.delete_message(chat_id=update.message.chat_id, message_id=message.message_id)
         os.remove(file_name)
@@ -89,9 +81,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("You are not authorized to use this command.")
         return
 
-    message = None
-    file_id = None
-    file_type = None
+    message, file_id, file_type = None, None, None
     if update.message.reply_to_message:
         if update.message.reply_to_message.text:
             message = update.message.reply_to_message.text
@@ -109,14 +99,13 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             return
     else:
         message = ' '.join(context.args)
-    
+
     if not message and not file_id:
         await update.message.reply_text("Please provide a message to broadcast.")
         return
 
     total_users = user_stats_collection.count_documents({})
-    success_count = 0
-    failure_count = 0
+    success_count, failure_count = 0, 0
 
     users = user_stats_collection.find()
     for user in users:
@@ -171,7 +160,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def main() -> None:
     try:
-        application = ApplicationBuilder().token(TOKEN).build()
+        application = Application.builder().token(TOKEN).build()
 
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CommandHandler("help", help_command))
@@ -182,8 +171,7 @@ async def main() -> None:
         await application.initialize()
         await application.bot.delete_webhook(drop_pending_updates=True)
         await application.start()
-        await application.updater.start_polling()
-        await application.updater.wait_until_idle()
+        await application.run_polling()
     except Exception as e:
         logger.error(f"Error occurred: {str(e)}")
 
